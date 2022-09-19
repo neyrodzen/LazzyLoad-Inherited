@@ -12,25 +12,34 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return const MaterialApp(
       home: Scaffold(
-        body: OwnerStateful(title: 'Flutter Demo Home Page'),
+        body: OwnerStateful(),
       ),
     );
   }
 }
 
 class OwnerStateful extends StatefulWidget {
-  const OwnerStateful({Key? key, required this.title}) : super(key: key);
-  final String title;
+  const OwnerStateful({
+    Key? key,
+  }) : super(key: key);
 
   @override
   State<OwnerStateful> createState() => _OwnerStatefulState();
 }
 
 class _OwnerStatefulState extends State<OwnerStateful> {
-  var _value = 0;
-  void _incrementCounter() {
+  var _valueOne = 0;
+  var _valueTwo = 0;
+
+  void _incrementCounterOne() {
     setState(() {
-      _value++;
+      _valueOne++;
+    });
+  }
+
+  void _incrementCounterTwo() {
+    setState(() {
+      _valueTwo++;
     });
   }
 
@@ -44,11 +53,16 @@ class _OwnerStatefulState extends State<OwnerStateful> {
             'You have pushed the button this many times:',
           ),
           ElevatedButton(
-            onPressed: _incrementCounter,
+            onPressed: _incrementCounterOne,
+            child: const Icon(Icons.add),
+          ),
+          ElevatedButton(
+            onPressed: _incrementCounterTwo,
             child: const Icon(Icons.add),
           ),
           InheritDataProvider(
-            value: _value,
+            valueOne: _valueOne,
+            valueTwo: _valueTwo,
             child: const ConsumerStateless(),
           ),
         ],
@@ -62,8 +76,10 @@ class ConsumerStateless extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final value = context
-            .dependOnInheritedWidgetOfExactType<InheritDataProvider>()
-            ?.value ??
+            .dependOnInheritedWidgetOfExactType<InheritDataProvider>(
+              aspect: 'one',
+            )
+            ?.valueOne ??
         0;
     return Center(
       child: Column(
@@ -86,22 +102,39 @@ class StatefulConsumer extends StatefulWidget {
 class _StatefulConsumerState extends State<StatefulConsumer> {
   @override
   Widget build(BuildContext context) {
-    final element =
-        context.getElementForInheritedWidgetOfExactType<InheritDataProvider>();
-    final provider = element?.widget as InheritDataProvider;
-    final value = provider.value;
+    final value = context
+            .dependOnInheritedWidgetOfExactType<InheritDataProvider>(
+              aspect: 'two',
+            )
+            ?.valueTwo ??
+        0;
     return Text('$value');
   }
 }
 
-class InheritDataProvider extends InheritedWidget {
+class InheritDataProvider extends InheritedModel<String> {
   const InheritDataProvider(
-      {super.key, required this.value, required super.child});
+      {super.key,
+      required this.valueOne,
+      required this.valueTwo,
+      required super.child});
 
-  final int value;
+  final int valueOne;
+  final int valueTwo;
 
   @override
-  bool updateShouldNotify(InheritDataProvider oldWidget) {
-    return value != oldWidget.value;
+  bool updateShouldNotify(covariant InheritDataProvider oldWidget) {
+    return valueOne != oldWidget.valueOne || valueTwo != oldWidget.valueTwo;
+  }
+
+  @override
+  bool updateShouldNotifyDependent(
+      covariant InheritDataProvider oldWidget, Set<String> dependencies) {
+    final isValueOneUpdate =
+        valueOne != oldWidget.valueOne && dependencies.contains('one');
+
+    final isValueTwoUpdate =
+        valueTwo != oldWidget.valueTwo && dependencies.contains('two');
+    return isValueOneUpdate || isValueTwoUpdate;
   }
 }
