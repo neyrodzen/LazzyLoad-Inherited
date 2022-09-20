@@ -12,129 +12,156 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return const MaterialApp(
       home: Scaffold(
-        body: OwnerStateful(),
+        body: SafeArea(
+          child: SimpleCalcWidget(),
+        ),
       ),
     );
   }
 }
 
-class OwnerStateful extends StatefulWidget {
-  const OwnerStateful({
-    Key? key,
-  }) : super(key: key);
+class SimpleCalcWidget extends StatefulWidget {
+  const SimpleCalcWidget({super.key});
 
   @override
-  State<OwnerStateful> createState() => _OwnerStatefulState();
+  State<SimpleCalcWidget> createState() => _SimpleCalcWidgetState();
 }
 
-class _OwnerStatefulState extends State<OwnerStateful> {
-  var _valueOne = 0;
-  var _valueTwo = 0;
-
-  void _incrementCounterOne() {
-    setState(() {
-      _valueOne++;
-    });
-  }
-
-  void _incrementCounterTwo() {
-    setState(() {
-      _valueTwo++;
-    });
-  }
+class _SimpleCalcWidgetState extends State<SimpleCalcWidget> {
+  final _model = SimpleCalcWidgetModwel();
 
   @override
   Widget build(BuildContext context) {
     return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: <Widget>[
-          const Text(
-            'You have pushed the button this many times:',
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 30),
+        child: SimpleCalcWidgetProwider(
+          model: _model,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: const [
+              FirstWidget(),
+              SizedBox(height: 10),
+              SecondtWidget(),
+              SizedBox(height: 10),
+              SummButtonWidget(),
+              SizedBox(height: 10),
+              ResultWidget(),
+            ],
           ),
-          ElevatedButton(
-            onPressed: _incrementCounterOne,
-            child: const Icon(Icons.add),
-          ),
-          ElevatedButton(
-            onPressed: _incrementCounterTwo,
-            child: const Icon(Icons.add),
-          ),
-          InheritDataProvider(
-            valueOne: _valueOne,
-            valueTwo: _valueTwo,
-            child: const ConsumerStateless(),
-          ),
-        ],
+        ),
       ),
     );
   }
 }
 
-class ConsumerStateless extends StatelessWidget {
-  const ConsumerStateless({super.key});
+class FirstWidget extends StatelessWidget {
+  const FirstWidget({super.key});
+
   @override
   Widget build(BuildContext context) {
-    final value = context
-            .dependOnInheritedWidgetOfExactType<InheritDataProvider>(
-              aspect: 'one',
-            )
-            ?.valueOne ??
-        0;
-    return Center(
-      child: Column(
-        children: [
-          Text('$value'),
-          const StatefulConsumer(),
-        ],
+    return TextField(
+      decoration: const InputDecoration(
+        border: OutlineInputBorder(),
       ),
+      onChanged: (value) =>
+          SimpleCalcWidgetProwider.of(context)?.model.firstNumber = value,
     );
   }
 }
 
-class StatefulConsumer extends StatefulWidget {
-  const StatefulConsumer({Key? key}) : super(key: key);
+class SecondtWidget extends StatelessWidget {
+  const SecondtWidget({super.key});
 
-  @override
-  State<StatefulConsumer> createState() => _StatefulConsumerState();
-}
-
-class _StatefulConsumerState extends State<StatefulConsumer> {
   @override
   Widget build(BuildContext context) {
-    final value = context
-            .dependOnInheritedWidgetOfExactType<InheritDataProvider>(
-              aspect: 'two',
-            )
-            ?.valueTwo ??
-        0;
-    return Text('$value');
+    return TextField(
+      decoration: const InputDecoration(
+        border: OutlineInputBorder(),
+      ),
+      onChanged: (value) =>
+          SimpleCalcWidgetProwider.of(context)?.model.secondNumber = value,
+    );
   }
 }
 
-class InheritDataProvider extends InheritedModel<String> {
-  const InheritDataProvider(
-      {super.key,
-      required this.valueOne,
-      required this.valueTwo,
-      required super.child});
-
-  final int valueOne;
-  final int valueTwo;
+class SummButtonWidget extends StatelessWidget {
+  const SummButtonWidget({Key? key}) : super(key: key);
 
   @override
-  bool updateShouldNotify(covariant InheritDataProvider oldWidget) {
-    return valueOne != oldWidget.valueOne || valueTwo != oldWidget.valueTwo;
+  Widget build(BuildContext context) {
+    return ElevatedButton(
+      onPressed: () => SimpleCalcWidgetProwider.of(context)?.model.sum(),
+      child: const Text('Calculated'),
+    );
+  }
+}
+
+class ResultWidget extends StatefulWidget {
+  const ResultWidget({Key? key}) : super(key: key);
+
+  @override
+  State<ResultWidget> createState() => _ResultWidgetState();
+}
+
+class _ResultWidgetState extends State<ResultWidget> {
+
+  var _value = '-1';
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+
+    final model = SimpleCalcWidgetProwider.of(context)?.model;
+    model?.addListener(() {
+      _value = '${model.sumResult}';
+      setState(() {});
+    });
   }
 
   @override
-  bool updateShouldNotifyDependent(
-      covariant InheritDataProvider oldWidget, Set<String> dependencies) {
-    final isValueOneUpdate =
-        valueOne != oldWidget.valueOne && dependencies.contains('one');
+  Widget build(BuildContext context) {
+  final value = SimpleCalcWidgetProwider.of(context)?.model.sumResult ?? 0;
 
-    final isValueTwoUpdate =
-        valueTwo != oldWidget.valueTwo && dependencies.contains('two');
-    return isValueOneUpdate || isValueTwoUpdate;
+    return Text('result = $_value');
+  }
+}
+
+class SimpleCalcWidgetModwel extends ChangeNotifier {
+  int? _firstNumber;
+  int? _secondNumber;
+  int? sumResult;
+
+  set firstNumber(String value) => _firstNumber = int.tryParse(value);
+  set secondNumber(String value) => _secondNumber = int.tryParse(value);
+
+  void sum() {
+    int? sumResult;
+    if (_firstNumber != null && _secondNumber != null) {
+      sumResult = _firstNumber! + _secondNumber!;
+    } else {
+      sumResult = null;
+    }
+    if (this.sumResult != sumResult) {
+      sumResult = this.sumResult;
+    }
+    notifyListeners();
+  }
+}
+
+class SimpleCalcWidgetProwider extends InheritedWidget {
+  const SimpleCalcWidgetProwider(
+      {super.key, required Widget child, required this.model})
+      : super(child: child);
+
+  final SimpleCalcWidgetModwel model;
+  static SimpleCalcWidgetProwider? of(BuildContext context) {
+    return context
+        .dependOnInheritedWidgetOfExactType<SimpleCalcWidgetProwider>();
+  }
+
+  @override
+  bool updateShouldNotify(SimpleCalcWidgetProwider oldWidget) {
+    return model != oldWidget.model;
   }
 }
